@@ -52,18 +52,7 @@ public void onUpdateReceived(Update update) {
             System.out.println("⚠️ Чужой пользователь: " + chatId);
             return;
             
-case "🔍 За неделю":
-    responseText = "🔍 Запускаю сканер мем-токенов...";
-    message.setText(responseText);
-    
-    // Создаем и запускаем сканер в отдельном потоке
-    new Thread(() -> {
-        PumpFunScanner scanner = new PumpFunScanner(this, chatId);
-        scanner.scanNewTokens();
-    }).start();
-    break;
-            
-        }
+  }
         
         System.out.println("👤 Команда: " + messageText);
         
@@ -79,6 +68,8 @@ case "🔍 За неделю":
                 // Добавляем клавиатуру к сообщению
                 message.setReplyMarkup(createMainKeyboard());
                 break;
+
+        
                 
             case "🔍 За неделю":
                 responseText = "📅 Список мем-коинов за НЕДЕЛЮ (скоро будет)";
@@ -104,6 +95,17 @@ case "🔍 За неделю":
                 responseText = "✅ Бот работает!\n⏰ Время: " + new java.util.Date();
                 message.setText(responseText);
                 break;
+
+            case "🔍 За неделю":
+    responseText = "🔍 Запускаю сканер мем-токенов...";
+    message.setText(responseText);
+    
+    // Создаем и запускаем сканер в отдельном потоке
+    new Thread(() -> {
+        PumpFunScanner scanner = new PumpFunScanner(this, chatId);
+        scanner.scanNewTokens();
+    }).start();
+    break;
                 
             default:
                 responseText = "Я пока не знаю такой команды. Используй меню 👇";
@@ -155,8 +157,22 @@ case "🔍 За неделю":
             MemeTokenBot bot = new MemeTokenBot(botToken);
             TelegramBotsApi botsApi = new TelegramBotsApi(DefaultBotSession.class);
             botsApi.registerBot(bot);
+            
 
             System.out.println("✅ Telegram бот успешно запущен!");
+
+            new Thread(() -> {
+    PumpFunScanner scanner = new PumpFunScanner(bot, bot.MY_CHAT_ID);
+    while (true) {
+        try {
+            Thread.sleep(60000); // 60 секунд
+            scanner.scanNewTokens();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+}).start();
+            
             System.out.println("🤖 Username: @" + bot.getBotUsername());
 
         } catch (Exception e) {
