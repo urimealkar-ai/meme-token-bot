@@ -51,6 +51,18 @@ public void onUpdateReceived(Update update) {
         if (chatId != MY_CHAT_ID) {
             System.out.println("⚠️ Чужой пользователь: " + chatId);
             return;
+            
+case "🔍 За неделю":
+    responseText = "🔍 Запускаю сканер мем-токенов...";
+    message.setText(responseText);
+    
+    // Создаем и запускаем сканер в отдельном потоке
+    new Thread(() -> {
+        PumpFunScanner scanner = new PumpFunScanner(this, chatId);
+        scanner.scanNewTokens();
+    }).start();
+    break;
+            
         }
         
         System.out.println("👤 Команда: " + messageText);
