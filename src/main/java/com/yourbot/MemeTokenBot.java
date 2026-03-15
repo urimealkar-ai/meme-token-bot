@@ -12,7 +12,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 
-public class MemeTokenBot extends TelegramLongPollingBot { // <<< НАЧАЛО КЛАССА
+public class MemeTokenBot extends TelegramLongPollingBot {
 
     private final String botToken;
     private final String botUsername = "MemTokenScanner_bot";
@@ -123,4 +123,4 @@ public class MemeTokenBot extends TelegramLongPollingBot { // <<< НАЧАЛО �
             e.printStackTrace();
         }
     }
-} 
+}
