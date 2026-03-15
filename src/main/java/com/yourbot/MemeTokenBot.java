@@ -1,5 +1,9 @@
 package com.yourbot;
 
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
+import java.util.List;
+import java.util.ArrayList;
 import com.sun.net.httpserver.HttpServer;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
@@ -18,6 +22,8 @@ public class MemeTokenBot extends TelegramLongPollingBot {
     private final String botUsername = "MemTokenScanner_bot";
     private final long MY_CHAT_ID = 911691327; // ЗДЕСЬ ТВОЙ ID
 
+    
+
     public MemeTokenBot(String botToken) {
         this.botToken = botToken;
     }
@@ -32,51 +38,74 @@ public class MemeTokenBot extends TelegramLongPollingBot {
         return botToken;
     }
 
-    @Override
-    public void onUpdateReceived(Update update) {
-        System.out.println("🔥 ПОЛУЧЕНО ОБНОВЛЕНИЕ: " + update);
+   @Override
+public void onUpdateReceived(Update update) {
+    System.out.println("🔥 ПОЛУЧЕНО ОБНОВЛЕНИЕ: " + update);
 
-        if (!update.hasMessage() || !update.getMessage().hasText()) {
-            System.out.println("⏭️ Нет текстового сообщения");
-            return;
-        }
-
+    // Проверяем, есть ли сообщение с текстом
+    if (update.hasMessage() && update.getMessage().hasText()) {
         long chatId = update.getMessage().getChatId();
-        System.out.println("👤 ChatID: " + chatId + " (мой: " + MY_CHAT_ID + ")");
-
+        String messageText = update.getMessage().getText();
+        
+        // Проверка на твой ID (защита)
         if (chatId != MY_CHAT_ID) {
             System.out.println("⚠️ Чужой пользователь: " + chatId);
             return;
         }
-
-        String messageText = update.getMessage().getText();
+        
+        System.out.println("👤 Команда: " + messageText);
+        
         String responseText;
-
-        switch (messageText) {
-            case "/start":
-                responseText = "👋 Привет! Я твой личный бот для мем-токенов на Solana!\n\n"
-                        + "Доступные команды:\n"
-                        + "/start - это меню\n"
-                        + "/status - проверить работу";
-                break;
-            case "/status":
-                responseText = "✅ Бот работает!\n"
-                        + "⏰ Время: " + new java.util.Date();
-                break;
-            default:
-                responseText = "Я пока понимаю только /start и /status 😅";
-        }
-
         SendMessage message = new SendMessage();
         message.setChatId(chatId);
-        message.setText(responseText);
-
+        
+        // Обработка команд и кнопок
+        switch (messageText) {
+            case "/start":
+                responseText = "👋 Добро пожаловать! Я бот для отслеживания мем-токенов на Solana.\n\nВыбери действие:";
+                message.setText(responseText);
+                // Добавляем клавиатуру к сообщению
+                message.setReplyMarkup(createMainKeyboard());
+                break;
+                
+            case "🔍 За неделю":
+                responseText = "📅 Список мем-коинов за НЕДЕЛЮ (скоро будет)";
+                message.setText(responseText);
+                break;
+                
+            case "📅 За сегодня":
+                responseText = "⏳ Список мем-коинов за СЕГОДНЯ (скоро будет)";
+                message.setText(responseText);
+                break;
+                
+            case "📊 Мой портфель":
+                responseText = "💼 Здесь будет твой портфель (в разработке)";
+                message.setText(responseText);
+                break;
+                
+            case "⚙️ Настройки":
+                responseText = "⚙️ Настройки (пока пусто)";
+                message.setText(responseText);
+                break;
+                
+            case "/status":
+                responseText = "✅ Бот работает!\n⏰ Время: " + new java.util.Date();
+                message.setText(responseText);
+                break;
+                
+            default:
+                responseText = "Я пока не знаю такой команды. Используй меню 👇";
+                message.setText(responseText);
+                message.setReplyMarkup(createMainKeyboard());
+        }
+        
         try {
             execute(message);
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
     }
+}
 
     public static void main(String[] args) {
         try {
@@ -123,4 +152,28 @@ public class MemeTokenBot extends TelegramLongPollingBot {
             e.printStackTrace();
         }
     }
+    private ReplyKeyboardMarkup createMainKeyboard() {
+    ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+    keyboardMarkup.setResizeKeyboard(true); // Автоматически подгонять размер
+    keyboardMarkup.setOneTimeKeyboard(false); // Клавиатура не исчезает после нажатия
+    
+    List<KeyboardRow> keyboard = new ArrayList<>();
+    
+    // Первый ряд кнопок
+    KeyboardRow row1 = new KeyboardRow();
+    row1.add("🔍 За неделю");
+    row1.add("📅 За сегодня");
+    
+    // Второй ряд
+    KeyboardRow row2 = new KeyboardRow();
+    row2.add("📊 Мой портфель");
+    row2.add("⚙️ Настройки");
+    
+    keyboard.add(row1);
+    keyboard.add(row2);
+    
+    keyboardMarkup.setKeyboard(keyboard);
+    return keyboardMarkup;
+}
+
 }
