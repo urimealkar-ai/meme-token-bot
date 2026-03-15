@@ -14,8 +14,9 @@ public class PumpFunScanner {
     
     private final HttpClient client = HttpClient.newHttpClient();
     private final Set<String> seenTokens = new HashSet<>();
-    private MemeTokenBot bot;  // Ссылка на бота для отправки сообщений
-    private long chatId;        // Твой Chat ID
+    private MemeTokenBot bot;
+    private long chatId;
+    private boolean firstScan = true; // Для первого теста
     
     public PumpFunScanner(MemeTokenBot bot, long chatId) {
         this.bot = bot;
@@ -23,70 +24,106 @@ public class PumpFunScanner {
     }
     
     public void scanNewTokens() {
+        System.out.println("🔄 Запуск сканирования Pump.fun...");
+        
+        // ТЕСТ: при первом запуске отправляем тестовое сообщение
+        if (firstScan) {
+            firstScan = false;
+            bot.sendNotification(chatId, "🧪 Тестовое сообщение от сканера! Если ты это видишь, значит бот может отправлять уведомления.");
+        }
+        
         try {
-            // Запрос к API Pump.fun для получения новых токенов
+            // Формируем запрос к API Pump.fun
             HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("https://frontend-api.pump.fun/coins?limit=20&offset=0&sort=created&order=DESC"))
+                .uri(URI.create("https://frontend-api.pump.fun/coins?limit=10&offset=0&sort=created&order=DESC"))
                 .header("Accept", "application/json")
+                .header("User-Agent", "Mozilla/5.0") // Добавим User-Agent для надежности
+                .timeout(java.time.Duration.ofSeconds(10))
                 .build();
             
+            System.out.println("📡 Отправляю запрос к API Pump.fun...");
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             
+            System.out.println("✅ Статус ответа: " + response.statusCode());
+            
             if (response.statusCode() == 200) {
-                parseTokens(response.body());
+                String body = response.body();
+                System.out.println("📦 Получено данных: " + body.length() + " символов");
+                
+                if (body.length() < 10) {
+                    System.out.println("❌ Ответ слишком короткий: " + body);
+                    return;
+                }
+                
+                parseTokens(body);
             } else {
-                System.out.println("❌ Ошибка API Pump.fun: " + response.statusCode());
+                System.out.println("❌ Ошибка API Pump.fun. Статус: " + response.statusCode());
+                System.out.println("Тело ответа: " + response.body());
             }
             
+        } catch (java.net.http.HttpTimeoutException e) {
+            System.out.println("⏰ Таймаут соединения: " + e.getMessage());
         } catch (Exception e) {
             System.out.println("❌ Ошибка сканирования: " + e.getMessage());
+            e.printStackTrace();
         }
     }
     
     private void parseTokens(String json) {
         try {
+            System.out.println("🔍 Парсинг JSON ответа...");
             JsonArray tokens = JsonParser.parseString(json).getAsJsonArray();
+            System.out.println("✅ Получено токенов в ответе: " + tokens.size());
+            
             int newTokensCount = 0;
             
-            for (var element : tokens) {
-                JsonObject token = element.getAsJsonObject();
-                String mint = token.get("mint").getAsString();
+            for (int i = 0; i < tokens.size(); i++) {
+                JsonObject token = tokens.get(i).getAsJsonObject();
                 
-                // Проверяем, новый ли токен
+                String mint = token.get("mint").getAsString();
+                String name = token.get("name").getAsString();
+                String symbol = token.get("symbol").getAsString();
+                
+                // Проверяем, видели ли мы этот токен
                 if (!seenTokens.contains(mint)) {
                     seenTokens.add(mint);
                     
-                    String name = token.get("name").getAsString();
-                    String symbol = token.get("symbol").getAsString();
-                    String creator = token.get("creator").getAsString();
-                    String createdAt = token.get("createdAt").getAsString();
+                    // Получаем остальные поля (могут отсутствовать)
+                    String creator = token.has("creator") ? token.get("creator").getAsString() : "Неизвестно";
+                    String createdAt = token.has("createdAt") ? token.get("createdAt").getAsString() : "Неизвестно";
                     
-                    // Отправляем уведомление в Telegram
+                    // Формируем красивое сообщение
                     String message = String.format(
-                        "🆕 **НОВЫЙ ТОКЕН НА PUMP.FUN!**\n\n" +
-                        "📛 Имя: %s\n" +
-                        "🔤 Символ: %s\n" +
-                        "👤 Создатель: %s\n" +
-                        "⏰ Создан: %s\n" +
-                        "🔗 Адрес: `%s`\n\n" +
-                        "🌐 Посмотреть: https://pump.fun/coin/%s",
-                        name, symbol, creator, createdAt, mint, mint
+                        "🆕 **НАЙДЕН НОВЫЙ ТОКЕН!**\n\n" +
+                        "📛 **Имя:** %s\n" +
+                        "🔤 **Символ:** %s\n" +
+                        "👤 **Создатель:** %s\n" +
+                        "⏰ **Создан:** %s\n" +
+                        "🔗 **Адрес:** `%s`\n\n" +
+                        "🌐 [Посмотреть на Pump.fun](https://pump.fun/coin/%s)\n" +
+                        "📊 [DexScreener](https://dexscreener.com/solana/%s)",
+                        name, symbol, creator, createdAt, mint, mint, mint
                     );
                     
                     bot.sendNotification(chatId, message);
                     newTokensCount++;
                     
-                    // Небольшая задержка между сообщениями
-                    Thread.sleep(500);
+                    System.out.println("✅ Новый токен: " + name + " (" + symbol + ")");
+                    
+                    // Небольшая задержка, чтобы не заспамить
+                    Thread.sleep(300);
                 }
             }
             
             if (newTokensCount > 0) {
-                System.out.println("✅ Найдено новых токенов: " + newTokensCount);
+                System.out.println("🎉 Всего новых токенов: " + newTokensCount);
+            } else {
+                System.out.println("⏳ Новых токенов не найдено");
             }
             
         } catch (Exception e) {
-            System.out.println("❌ Ошибка парсинга: " + e.getMessage());
+            System.out.println("❌ Ошибка парсинга JSON: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }
