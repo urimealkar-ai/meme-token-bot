@@ -175,5 +175,18 @@ public void onUpdateReceived(Update update) {
     keyboardMarkup.setKeyboard(keyboard);
     return keyboardMarkup;
 }
-
+// Метод для отправки уведомлений из сканера
+public void sendNotification(long chatId, String messageText) {
+    SendMessage message = new SendMessage();
+    message.setChatId(chatId);
+    message.setText(messageText);
+    message.setParseMode("Markdown");  // Для красивого форматирования
+    
+    try {
+        execute(message);
+        System.out.println("✅ Уведомление отправлено");
+    } catch (TelegramApiException e) {
+        System.out.println("❌ Ошибка отправки уведомления: " + e.getMessage());
+    }
+}
 }
