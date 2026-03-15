@@ -139,60 +139,55 @@ public class MemeTokenBot extends TelegramLongPollingBot {
         }
     }
 
-    public static void main(String[] args) {
-        try {
-            String portEnv = System.getenv("PORT");
-            if (portEnv == null) {
-                portEnv = "10000";
-            }
-            int port = Integer.parseInt(portEnv);
-
-            HttpServer server = HttpServer.create(new InetSocketAddress("0.0.0.0", port), 0);
-            server.createContext("/", exchange -> {
-                String response = "Bot is running!";
-                exchange.getResponseHeaders().set("Content-Type", "text/plain");
-
-                if ("HEAD".equals(exchange.getRequestMethod())) {
-                    exchange.sendResponseHeaders(200, -1);
-                } else {
-                    exchange.sendResponseHeaders(200, response.length());
-                    OutputStream os = exchange.getResponseBody();
-                    os.write(response.getBytes());
-                    os.close();
-                }
-                exchange.close();
-            });
-            server.setExecutor(null);
-            server.start();
-            System.out.println("✅ HTTP-сервер запущен на порту " + port);
-
-            String botToken = System.getenv("BOT_TOKEN");
-            if (botToken == null || botToken.isEmpty()) {
-                System.err.println("❌ ОШИБКА: BOT_TOKEN не задан!");
-                return;
-            }
-
-            MemeTokenBot bot = new MemeTokenBot(botToken);
-            TelegramBotsApi botsApi = new TelegramBotsApi(DefaultBotSession.class);
-            botsApi.registerBot(bot);
-
-            // После botsApi.registerBot(bot);
-System.out.println("✅ Telegram бот успешно запущен!");
-
-// Запускаем WebSocket сканер
-bot.startRaydiumScanner();
-
-            System.out.println("✅ Telegram бот успешно запущен!");
-
-        
-
-            System.out.println("🤖 Username: @" + bot.getBotUsername());
-
-        } catch (Exception e) {
-            System.err.println("❌ КРИТИЧЕСКАЯ ОШИБКА:");
-            e.printStackTrace();
+   public static void main(String[] args) {
+    try {
+        String portEnv = System.getenv("PORT");
+        if (portEnv == null) {
+            portEnv = "10000";
         }
+        int port = Integer.parseInt(portEnv);
+
+        HttpServer server = HttpServer.create(new InetSocketAddress("0.0.0.0", port), 0);
+        server.createContext("/", exchange -> {
+            String response = "Bot is running!";
+            exchange.getResponseHeaders().set("Content-Type", "text/plain");
+
+            if ("HEAD".equals(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(200, -1);
+            } else {
+                exchange.sendResponseHeaders(200, response.length());
+                OutputStream os = exchange.getResponseBody();
+                os.write(response.getBytes());
+                os.close();
+            }
+            exchange.close();
+        });
+        server.setExecutor(null);
+        server.start();
+        System.out.println("✅ HTTP-сервер запущен на порту " + port);
+
+        String botToken = System.getenv("BOT_TOKEN");
+        if (botToken == null || botToken.isEmpty()) {
+            System.err.println("❌ ОШИБКА: BOT_TOKEN не задан!");
+            return;
+        }
+
+        MemeTokenBot bot = new MemeTokenBot(botToken);
+        TelegramBotsApi botsApi = new TelegramBotsApi(DefaultBotSession.class);
+        botsApi.registerBot(bot);
+
+        System.out.println("✅ Telegram бот успешно запущен!");
+
+        // 🔥 ВОТ ЭТО САМОЕ ВАЖНОЕ - ЗАПУСК СКАНЕРА
+        bot.startRaydiumScanner();
+
+        System.out.println("🤖 Username: @" + bot.getBotUsername());
+
+    } catch (Exception e) {
+        System.err.println("❌ КРИТИЧЕСКАЯ ОШИБКА:");
+        e.printStackTrace();
     }
+}
     private RaydiumWebSocketScanner raydiumScanner;
 
 // Добавь этот метод для запуска WebSocket сканера
