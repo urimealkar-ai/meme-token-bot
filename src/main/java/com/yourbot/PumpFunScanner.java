@@ -26,7 +26,6 @@ public class PumpFunScanner {
     public void scanNewTokens() {
         System.out.println("🔄 Запуск сканирования DexScreener...");
         
-        // Тестовое сообщение (можно потом убрать)
         if (firstScan) {
             firstScan = false;
             bot.sendNotification(chatId, "🧪 Сканер запущен, ищу токены на Solana...");
@@ -64,42 +63,64 @@ public class PumpFunScanner {
             
             int newCount = 0;
             
-            for (var element : tokens) {
-                JsonObject token = element.getAsJsonObject();
-                String chainId = token.get("chainId").getAsString();
-                
-                // Нас интересует только Solana
-                if (!"solana".equals(chainId)) continue;
-                
-                JsonObject tokenInfo = token.getAsJsonObject("token");
-                String address = tokenInfo.get("address").getAsString();
-                
-                if (!seenTokens.contains(address)) {
-                    seenTokens.add(address);
+            for (int i = 0; i < tokens.size(); i++) {
+                try {
+                    JsonObject token = tokens.get(i).getAsJsonObject();
                     
-                    String name = tokenInfo.get("name").getAsString();
-                    String symbol = tokenInfo.get("symbol").getAsString();
+                    // Проверяем chainId
+                    if (!token.has("chainId")) continue;
+                    String chainId = token.get("chainId").getAsString();
+                    if (!"solana".equals(chainId)) continue;
                     
-                    String message = String.format(
-                        "🆕 **НОВЫЙ ТОКЕН НА SOLANA!**\n\n" +
-                        "📛 **Имя:** %s\n" +
-                        "🔤 **Символ:** %s\n" +
-                        "🔗 **Адрес:** `%s`\n\n" +
-                        "📊 [Посмотреть на DexScreener](https://dexscreener.com/solana/%s)\n" +
-                        "🛒 [Купить на Jupiter](https://jup.ag/swap/SOL-%s)",
-                        name, symbol, address, address, address
-                    );
+                    // Поле может называться по-разному: "token" или "baseToken"
+                    JsonObject tokenInfo = null;
+                    if (token.has("token")) {
+                        tokenInfo = token.getAsJsonObject("token");
+                    } else if (token.has("baseToken")) {
+                        tokenInfo = token.getAsJsonObject("baseToken");
+                    } else {
+                        System.out.println("⚠️ Пропускаю: нет информации о токене");
+                        continue;
+                    }
                     
-                    bot.sendNotification(chatId, message);
-                    newCount++;
-                    Thread.sleep(300);
+                    // Проверяем наличие обязательных полей
+                    if (!tokenInfo.has("address")) continue;
+                    
+                    String address = tokenInfo.get("address").getAsString();
+                    
+                    if (!seenTokens.contains(address)) {
+                        seenTokens.add(address);
+                        
+                        String name = tokenInfo.has("name") ? tokenInfo.get("name").getAsString() : "Unknown";
+                        String symbol = tokenInfo.has("symbol") ? tokenInfo.get("symbol").getAsString() : "???";
+                        
+                        // Формируем сообщение
+                        StringBuilder message = new StringBuilder();
+                        message.append("🆕 **НОВЫЙ ТОКЕН НА SOLANA!**\n\n");
+                        message.append("📛 **Имя:** ").append(name).append("\n");
+                        message.append("🔤 **Символ:** ").append(symbol).append("\n");
+                        message.append("🔗 **Адрес:** `").append(address).append("`\n\n");
+                        
+                        // Добавляем ссылки
+                        message.append("📊 [DexScreener](https://dexscreener.com/solana/").append(address).append(")\n");
+                        message.append("🛒 [Jupiter](https://jup.ag/swap/SOL-").append(address).append(")\n");
+                        message.append("📈 [Birdeye](https://birdeye.so/token/").append(address).append("?chain=solana)");
+                        
+                        bot.sendNotification(chatId, message.toString());
+                        newCount++;
+                        
+                        Thread.sleep(300);
+                    }
+                    
+                } catch (Exception e) {
+                    System.out.println("⚠️ Ошибка обработки токена #" + i + ": " + e.getMessage());
                 }
             }
             
             System.out.println("✅ Найдено новых токенов Solana: " + newCount);
             
         } catch (Exception e) {
-            System.out.println("❌ Ошибка парсинга: " + e.getMessage());
+            System.out.println("❌ Ошибка парсинга JSON: " + e.getMessage());
             e.printStackTrace();
         }
     }
