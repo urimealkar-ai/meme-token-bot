@@ -184,17 +184,7 @@ bot.startRaydiumScanner();
 
             System.out.println("✅ Telegram бот успешно запущен!");
 
-            new Thread(() -> {
-                PumpFunScanner scanner = new PumpFunScanner(bot, bot.MY_CHAT_ID);
-                while (true) {
-                    try {
-                        Thread.sleep(60000);
-                        scanner.scanNewTokens();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }).start();
+        
 
             System.out.println("🤖 Username: @" + bot.getBotUsername());
 
