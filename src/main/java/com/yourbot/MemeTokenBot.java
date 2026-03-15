@@ -69,50 +69,51 @@ public class MemeTokenBot extends TelegramLongPollingBot {
     }
 
     public static void main(String[] args) {
-        try {
-            // --- НОВЫЙ БЛОК: ЗАПУСК HTTP-СЕРВЕРА ДЛЯ RENDER ---
-            // Получаем порт из переменной окружения Render (по умолчанию 10000)
-            String portEnv = System.getenv("PORT");
-            if (portEnv == null) {
-                portEnv = "10000"; // Значение по умолчанию из документации Render
-            }
-            int port = Integer.parseInt(portEnv);
-
-            // Создаём простой HTTP-сервер
-            HttpServer server = HttpServer.create(new InetSocketAddress("0.0.0.0", port), 0);
-            server.createContext("/", new HttpHandler() {
-                @Override
-                public void handle(HttpExchange exchange) throws IOException {
-                    String response = "Bot is running!";
-                    exchange.sendResponseHeaders(200, response.length());
-                    OutputStream os = exchange.getResponseBody();
-                    os.write(response.getBytes());
-                    os.close();
-                }
-            });
-            server.setExecutor(null);
-            server.start();
-            System.out.println("✅ HTTP-сервер запущен на порту " + port + " (для Render)");
-            // -------------------------------------------------
-
-            // Получаем токен бота из переменной окружения
-            String botToken = System.getenv("BOT_TOKEN");
-            if (botToken == null || botToken.isEmpty()) {
-                System.err.println("❌ ОШИБКА: BOT_TOKEN не задан в переменных окружения!");
-                return;
-            }
-
-            // Запускаем Telegram бота
-            MemeTokenBot bot = new MemeTokenBot(botToken);
-            TelegramBotsApi botsApi = new TelegramBotsApi(DefaultBotSession.class);
-            botsApi.registerBot(bot);
-
-            System.out.println("✅ Telegram бот успешно запущен!");
-            System.out.println("🤖 Username: @" + bot.getBotUsername());
-
-        } catch (Exception e) {
-            System.err.println("❌ КРИТИЧЕСКАЯ ОШИБКА:");
-            e.printStackTrace();
+    try {
+        // HTTP-сервер для Render (исправленная версия)
+        String portEnv = System.getenv("PORT");
+        if (portEnv == null) {
+            portEnv = "10000";
         }
+        int port = Integer.parseInt(portEnv);
+        
+        HttpServer server = HttpServer.create(new InetSocketAddress("0.0.0.0", port), 0);
+        server.createContext("/", exchange -> {
+            String response = "Bot is running!";
+            exchange.getResponseHeaders().set("Content-Type", "text/plain");
+            
+            // Правильная обработка HEAD-запросов
+            if ("HEAD".equals(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(200, -1);
+            } else {
+                exchange.sendResponseHeaders(200, response.length());
+                OutputStream os = exchange.getResponseBody();
+                os.write(response.getBytes());
+                os.close();
+            }
+            exchange.close();
+        });
+        server.setExecutor(null);
+        server.start();
+        System.out.println("✅ HTTP-сервер запущен на порту " + port);
+        
+        // Запуск Telegram бота
+        String botToken = System.getenv("BOT_TOKEN");
+        if (botToken == null || botToken.isEmpty()) {
+            System.err.println("❌ ОШИБКА: BOT_TOKEN не задан!");
+            return;
+        }
+        
+        MemeTokenBot bot = new MemeTokenBot(botToken);
+        TelegramBotsApi botsApi = new TelegramBotsApi(DefaultBotSession.class);
+        botsApi.registerBot(bot);
+        
+        System.out.println("✅ Telegram бот успешно запущен!");
+        System.out.println("🤖 Username: @" + bot.getBotUsername());
+        System.out.println("🔒 Режим: только для владельца (chatId = " + bot.MY_CHAT_ID + ")");
+        
+    } catch (Exception e) {
+        System.err.println("❌ КРИТИЧЕСКАЯ ОШИБКА:");
+        e.printStackTrace();
     }
 }
