@@ -10,7 +10,7 @@ import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 public class MemeTokenBot extends TelegramLongPollingBot {
     
     private final String botToken;
-    private final String botUsername = MemTokenScanner_bot; // Замени на свое!
+    private final String botUsername = "MemTokenScanner_bot"; // Замени на свое!
     
     public MemeTokenBot(String botToken) {
         this.botToken = botToken;
