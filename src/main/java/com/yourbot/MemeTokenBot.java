@@ -65,14 +65,10 @@ public class MemeTokenBot extends TelegramLongPollingBot {
                 message.setReplyMarkup(createMainKeyboard());
                 break;
 
-            case "🔍 За неделю":
-                responseText = "🔍 Запускаю сканер мем-токенов...";
-                message.setText(responseText);
-                new Thread(() -> {
-                    PumpFunScanner scanner = new PumpFunScanner(this, chatId);
-                    scanner.scanNewTokens();
-                }).start();
-                break;
+                 case "🔍 За неделю":
+                    responseText = "🔍 WebSocket сканер уже работает в фоне!\n\nОн будет присылать новые токены автоматически.";
+                    message.setText(responseText);
+                    break;
 
             case "📅 За сегодня":
                 responseText = "⏳ Список мем-коинов за СЕГОДНЯ (скоро будет)";
@@ -180,6 +176,12 @@ public class MemeTokenBot extends TelegramLongPollingBot {
             TelegramBotsApi botsApi = new TelegramBotsApi(DefaultBotSession.class);
             botsApi.registerBot(bot);
 
+            // После botsApi.registerBot(bot);
+System.out.println("✅ Telegram бот успешно запущен!");
+
+// Запускаем WebSocket сканер
+bot.startRaydiumScanner();
+
             System.out.println("✅ Telegram бот успешно запущен!");
 
             new Thread(() -> {
@@ -201,4 +203,23 @@ public class MemeTokenBot extends TelegramLongPollingBot {
             e.printStackTrace();
         }
     }
+    private RaydiumWebSocketScanner raydiumScanner;
+
+// Добавь этот метод для запуска WebSocket сканера
+public void startRaydiumScanner() {
+    String heliusApiKey = System.getenv("HELIUS_API_KEY");
+    if (heliusApiKey == null || heliusApiKey.isEmpty()) {
+        System.out.println("⚠️ HELIUS_API_KEY не задан, WebSocket сканер не запущен");
+        return;
+    }
+    
+    // Извлекаем API ключ из полного URL
+    if (heliusApiKey.contains("api-key=")) {
+        heliusApiKey = heliusApiKey.split("api-key=")[1];
+    }
+    
+    raydiumScanner = new RaydiumWebSocketScanner(this, MY_CHAT_ID, heliusApiKey);
+    raydiumScanner.start();
+    System.out.println("✅ Raydium WebSocket сканер запущен");
+}
 }
