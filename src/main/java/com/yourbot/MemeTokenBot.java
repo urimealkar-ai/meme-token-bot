@@ -38,87 +38,79 @@ public class MemeTokenBot extends TelegramLongPollingBot {
         return botToken;
     }
 
-   @Override
+@Override
 public void onUpdateReceived(Update update) {
     System.out.println("🔥 ПОЛУЧЕНО ОБНОВЛЕНИЕ: " + update);
 
-    // Проверяем, есть ли сообщение с текстом
-    if (update.hasMessage() && update.getMessage().hasText()) {
-        long chatId = update.getMessage().getChatId();
-        String messageText = update.getMessage().getText();
-        
-        // Проверка на твой ID (защита)
-        if (chatId != MY_CHAT_ID) {
-            System.out.println("⚠️ Чужой пользователь: " + chatId);
-            return;
-            
-  }
-        
-        System.out.println("👤 Команда: " + messageText);
-        
-        String responseText;
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId);
-        
-        // Обработка команд и кнопок
-        switch (messageText) {
-            case "/start":
-                responseText = "👋 Добро пожаловать! Я бот для отслеживания мем-токенов на Solana.\n\nВыбери действие:";
-                message.setText(responseText);
-                // Добавляем клавиатуру к сообщению
-                message.setReplyMarkup(createMainKeyboard());
-                break;
-
-        
-                
-            case "🔍 За неделю":
-                responseText = "📅 Список мем-коинов за НЕДЕЛЮ (скоро будет)";
-                message.setText(responseText);
-                break;
-                
-            case "📅 За сегодня":
-                responseText = "⏳ Список мем-коинов за СЕГОДНЯ (скоро будет)";
-                message.setText(responseText);
-                break;
-                
-            case "📊 Мой портфель":
-                responseText = "💼 Здесь будет твой портфель (в разработке)";
-                message.setText(responseText);
-                break;
-                
-            case "⚙️ Настройки":
-                responseText = "⚙️ Настройки (пока пусто)";
-                message.setText(responseText);
-                break;
-                
-            case "/status":
-                responseText = "✅ Бот работает!\n⏰ Время: " + new java.util.Date();
-                message.setText(responseText);
-                break;
-
-            case "🔍 За неделю":
-    responseText = "🔍 Запускаю сканер мем-токенов...";
-    message.setText(responseText);
-    
-    // Создаем и запускаем сканер в отдельном потоке
-    new Thread(() -> {
-        PumpFunScanner scanner = new PumpFunScanner(this, chatId);
-        scanner.scanNewTokens();
-    }).start();
-    break;
-                
-            default:
-                responseText = "Я пока не знаю такой команды. Используй меню 👇";
-                message.setText(responseText);
-                message.setReplyMarkup(createMainKeyboard());
-        }
-        
-        try {
-            execute(message);
-        } catch (TelegramApiException e) {
-            e.printStackTrace();
-        }
+    if (!update.hasMessage() || !update.getMessage().hasText()) {
+        System.out.println("⏭️ Нет текстового сообщения");
+        return;
     }
+
+    long chatId = update.getMessage().getChatId();
+    String messageText = update.getMessage().getText();
+
+    if (chatId != MY_CHAT_ID) {
+        System.out.println("⚠️ Чужой пользователь: " + chatId);
+        return;
+    }
+
+    System.out.println("👤 Команда: " + messageText);
+
+    String responseText;
+    SendMessage message = new SendMessage();
+    message.setChatId(chatId);
+
+    // Обработка команд и кнопок
+    switch (messageText) {
+        case "/start":
+            responseText = "👋 Добро пожаловать! Я бот для отслеживания мем-токенов на Solana.\n\nВыбери действие:";
+            message.setText(responseText);
+            message.setReplyMarkup(createMainKeyboard());
+            break;
+
+        case "🔍 За неделю":
+            responseText = "🔍 Запускаю сканер мем-токенов...";
+            message.setText(responseText);
+            // Создаем и запускаем сканер в отдельном потоке
+            new Thread(() -> {
+                PumpFunScanner scanner = new PumpFunScanner(this, chatId);
+                scanner.scanNewTokens();
+            }).start();
+            break;
+
+        case "📅 За сегодня":
+            responseText = "⏳ Список мем-коинов за СЕГОДНЯ (скоро будет)";
+            message.setText(responseText);
+            break;
+
+        case "📊 Мой портфель":
+            responseText = "💼 Здесь будет твой портфель (в разработке)";
+            message.setText(responseText);
+            break;
+
+        case "⚙️ Настройки":
+            responseText = "⚙️ Настройки (пока пусто)";
+            message.setText(responseText);
+            break;
+
+        case "/status":
+            responseText = "✅ Бот работает!\n⏰ Время: " + new java.util.Date();
+            message.setText(responseText);
+            break;
+
+        default:
+            responseText = "Я пока не знаю такой команды. Используй меню 👇";
+            message.setText(responseText);
+            message.setReplyMarkup(createMainKeyboard());
+    }
+
+    try {
+        execute(message);
+    } catch (TelegramApiException e) {
+        e.printStackTrace();
+    }
+}
 }
 
     public static void main(String[] args) {
